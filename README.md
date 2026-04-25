@@ -58,9 +58,8 @@ GET /state?session_id=<id>
 
 ## 📈 Training Results
 
-![Reward Curve](reward_curve.png)
-![Curriculum Reward Curve](curriculum_curve.png)
-*Curriculum training across easy/medium/hard difficulty levels*
+![Reward Curve](https://huggingface.co/Priyansh10oooo/vc-negotiation-model/resolve/main/reward_curve.png)
+![Curriculum Curve](https://huggingface.co/Priyansh10oooo/vc-negotiation-model/resolve/main/curriculum_curve.png)
 
 - **Baseline reward (untrained):** 0.026
 - **After GRPO training:** 0.13-0.20 (5-7x improvement)
