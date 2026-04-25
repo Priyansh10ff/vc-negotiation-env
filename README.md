@@ -58,10 +58,14 @@ GET /state?session_id=<id>
 
 ## 📈 Training Results
 
-- **Baseline reward:** 0.026
-- **After GRPO training:** 0.13+ (5x improvement)
+![Reward Curve](reward_curve.png)
+
+- **Baseline reward (untrained):** 0.026
+- **After GRPO training:** 0.13-0.20 (5-7x improvement)
 - **Model:** Qwen2.5-1.5B-Instruct + LoRA
+- **Training:** 395 steps, GRPO algorithm
 - **Framework:** TRL GRPO + Unsloth
+- **Trained model:** [Priyansh10oooo/vc-negotiation-model](https://huggingface.co/Priyansh10oooo/vc-negotiation-model)
 
 ## 🛠️ Stack
 - OpenEnv (environment framework)
