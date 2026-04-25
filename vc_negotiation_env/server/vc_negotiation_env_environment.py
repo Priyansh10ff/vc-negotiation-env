@@ -116,6 +116,7 @@ class VcNegotiationEnvironment(Environment):
             reward_info_gathering * 0.1,
             4
         )
+        total_reward = max(0.001, min(0.999, total_reward))
 
         rewards = {
             "deal_closed": reward_deal_closed,
