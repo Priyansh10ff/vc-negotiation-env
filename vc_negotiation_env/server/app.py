@@ -10,11 +10,12 @@ app = FastAPI()
 sessions: Dict[str, VcNegotiationEnvironment] = {}
 
 @app.post("/reset")
-def reset(session_id: str = None):
+@app.post("/reset")
+def reset(session_id: str = None, difficulty: str = "medium"):
     if not session_id:
         session_id = str(uuid4())
     sessions[session_id] = VcNegotiationEnvironment()
-    obs = sessions[session_id].reset()
+    obs = sessions[session_id].reset(difficulty=difficulty)
     result = obs.model_dump()
     result["session_id"] = session_id
     return result

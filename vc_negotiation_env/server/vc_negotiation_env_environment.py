@@ -7,18 +7,44 @@ class VcNegotiationEnvironment(Environment):
     def __init__(self):
         self._state: Optional[DealState] = None
 
-    def reset(self) -> Observation:
-        self._state = DealState(
-            founder_target_valuation=round(random.uniform(8.0, 20.0), 1),
-            founder_min_valuation=round(random.uniform(4.0, 7.9), 1),
-            founder_max_equity=round(random.uniform(10.0, 25.0), 1),
-            competing_offer=random.choice([None, round(random.uniform(6.0, 15.0), 1)]),
-            current_round=0,
-            max_rounds=6,
-            deal_closed=False,
-            founder_walked=False,
-            offers_made=[]
-        )
+    def reset(self, difficulty: str = "medium") -> Observation:
+        if difficulty == "easy":
+            self._state = DealState(
+                founder_target_valuation=round(random.uniform(5.0, 8.0), 1),
+                founder_min_valuation=round(random.uniform(3.0, 4.9), 1),
+                founder_max_equity=round(random.uniform(20.0, 35.0), 1),
+                competing_offer=None,
+                current_round=0,
+                max_rounds=10,
+                deal_closed=False,
+                founder_walked=False,
+                offers_made=[]
+            )
+        elif difficulty == "hard":
+            self._state = DealState(
+                founder_target_valuation=round(random.uniform(15.0, 25.0), 1),
+                founder_min_valuation=round(random.uniform(10.0, 14.9), 1),
+                founder_max_equity=round(random.uniform(5.0, 12.0), 1),
+                competing_offer=round(random.uniform(12.0, 20.0), 1),
+                current_round=0,
+                max_rounds=4,
+                deal_closed=False,
+                founder_walked=False,
+                offers_made=[]
+            )
+        else:  # medium
+            self._state = DealState(
+                founder_target_valuation=round(random.uniform(8.0, 20.0), 1),
+                founder_min_valuation=round(random.uniform(4.0, 7.9), 1),
+                founder_max_equity=round(random.uniform(10.0, 25.0), 1),
+                competing_offer=random.choice([None, round(random.uniform(6.0, 15.0), 1)]),
+                current_round=0,
+                max_rounds=6,
+                deal_closed=False,
+                founder_walked=False,
+                offers_made=[]
+            )
+
         msg = "We're looking for a strong partner. What would you like to know about us?"
         if self._state.competing_offer:
             msg += f" Just so you know, we have another offer at ${self._state.competing_offer}M."
