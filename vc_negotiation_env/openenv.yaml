@@ -1,7 +1,20 @@
 spec_version: 1
 name: vc_negotiation_env
+version: 0.1.0
 type: space
 runtime: fastapi
 app: server.app:app
-port: 8000
-
+port: 7860
+description: "An RL environment where an AI agent learns to negotiate startup funding deals like a VC partner."
+author: Priyansh10oooo
+tags:
+  - negotiation
+  - finance
+  - rl
+  - world-modeling
+rewards:
+  - deal_closed
+  - valuation_efficiency
+  - equity_efficiency
+  - speed_bonus
+  - information_gathering

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 class Action(BaseModel):
     action_type: str  # "ask", "offer", "accept", "walkaway"
@@ -12,6 +12,7 @@ class Observation(BaseModel):
     round_number: int
     deal_closed: bool
     founder_walked: bool
+    rewards: Dict[str, float] = {}
 
 class DealState(BaseModel):
     founder_target_valuation: float

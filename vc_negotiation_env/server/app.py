@@ -17,4 +17,4 @@ def step(action: Action):
 
 @app.get("/state")
 def get_state():
-    return env.state.model_dump()
+    return env.state().model_dump()
