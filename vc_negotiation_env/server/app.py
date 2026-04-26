@@ -1,15 +1,25 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from uuid import uuid4
 from typing import Dict
 from vc_negotiation_env.models import Action
 from vc_negotiation_env.server.vc_negotiation_env_environment import VcNegotiationEnvironment
+import os
 
 app = FastAPI()
+
+# Serve index.html at root
+@app.get("/")
+def root():
+    index_path = os.path.join(os.path.dirname(__file__), "../../../index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path, media_type="text/html")
+    return {"detail": "index.html not found"}
 
 # Per-session environments — safe for parallel rollouts
 sessions: Dict[str, VcNegotiationEnvironment] = {}
 
-@app.post("/reset")
 @app.post("/reset")
 def reset(session_id: str = None, difficulty: str = "medium"):
     if not session_id:
