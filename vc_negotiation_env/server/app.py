@@ -12,7 +12,7 @@ app = FastAPI()
 # Serve index.html at root
 @app.get("/")
 def root():
-    index_path = os.path.join(os.path.dirname(__file__), "../../../index.html")
+    index_path = "/app/index.html"
     if os.path.exists(index_path):
         return FileResponse(index_path, media_type="text/html")
     return {"detail": "index.html not found"}

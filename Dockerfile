@@ -3,7 +3,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY vc_negotiation_env/ /app/vc_negotiation_env/
-COPY index.html /app/index.html
+COPY index.html /app/index.html 
 
 RUN pip install fastapi uvicorn pydantic openenv-core requests
 
