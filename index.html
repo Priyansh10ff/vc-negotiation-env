@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VC Negotiation Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d0d0d;--surface:#161616;--surface2:#1e1e1e;
+  --border:#2a2a2a;--border2:#333;
+  --text:#f0ede8;--muted:#6b6b6b;
+  --red:#c0392b;--green:#27ae60;
+  --paper:#f7f4ef;--ink:#1a1a1a;--ink2:#3d3d3d;--ink3:#7a7a7a;--rule:#d4cfc8;
+}
+body{background:var(--bg);min-height:100vh;font-family:'DM Mono',monospace;color:var(--text);display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 32px;border-bottom:1px solid var(--border);background:var(--surface)}
+.topbar-logo{font-family:'DM Serif Display',serif;font-size:15px;color:var(--text)}
+.topbar-logo em{font-style:italic;color:var(--muted)}
+.topbar-meta{display:flex;gap:24px;align-items:center}
+.meta-item{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.meta-item strong{color:var(--text);font-weight:500}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.layout{flex:1;display:grid;grid-template-columns:280px 1fr 320px;height:calc(100vh - 49px)}
+.panel{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.panel:last-child{border-right:none;border-left:1px solid var(--border)}
+.panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.panel-title{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+.panel-badge{font-size:9px;letter-spacing:1px;padding:2px 8px;border:1px solid var(--border2);color:var(--muted)}
+.cp-body{padding:24px 20px;flex:1;overflow-y:auto}
+.cp-name{font-family:'DM Serif Display',serif;font-size:26px;color:var(--text);line-height:1.2;margin-bottom:4px}
+.cp-name em{font-style:italic;color:var(--muted);font-size:20px}
+.cp-co{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.kv-row{display:flex;justify-content:space-between;align-items:flex-end;padding:10px 0;border-bottom:1px solid var(--border)}
+.kv-key{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.kv-val{font-family:'DM Serif Display',serif;font-size:18px;color:var(--text);text-align:right}
+.kv-val.secret{font-family:'DM Mono',monospace;font-size:11px;color:var(--border2);font-style:italic}
+.kv-val.revealed{color:#5b9bd5}
+.alert-box{margin-top:16px;padding:12px 14px;border:1px solid #4a2a1a;background:#1a0f0a;font-size:10px;line-height:1.7;color:#c87941;display:none}
+.alert-box strong{display:block;letter-spacing:1px;margin-bottom:2px;font-size:9px;text-transform:uppercase}
+.intel-section{margin-top:20px}
+.intel-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.intel-item{font-size:11px;line-height:1.6;color:#8aabcc;padding:6px 0;border-bottom:1px solid var(--border);display:none}
+.intel-item.show{display:block}
+.intel-empty{font-size:11px;color:var(--muted);font-style:italic}
+.mid-wrap{position:relative;display:flex;flex-direction:column;flex:1;overflow:hidden}
+.neg-body{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.neg-body::-webkit-scrollbar{width:3px}
+.neg-body::-webkit-scrollbar-thumb{background:var(--border2)}
+.transcript{flex:1;padding:24px 28px;display:flex;flex-direction:column;gap:0;overflow-y:auto}
+.transcript::-webkit-scrollbar{width:3px}
+.transcript::-webkit-scrollbar-thumb{background:var(--border2)}
+.msg{padding:16px 0;border-bottom:1px solid var(--border);animation:slideIn 0.25s ease}
+.msg:last-child{border-bottom:none}
+@keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg-meta{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.msg-who{font-size:9px;letter-spacing:3px;text-transform:uppercase}
+.msg-who.founder{color:var(--red)}
+.msg-who.agent{color:var(--green)}
+.msg-who.sys{color:var(--muted)}
+.msg-round{font-size:9px;color:var(--muted)}
+.msg-text{font-family:'Libre Baskerville',serif;font-size:14px;line-height:1.8;color:var(--text)}
+.msg-text.sys-text{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);font-style:italic}
+.msg-reward{margin-top:6px;font-size:10px;color:var(--muted);letter-spacing:1px}
+.msg-reward span{color:#5b9bd5}
+.action-bar{border-top:1px solid var(--border);padding:16px 20px;flex-shrink:0;background:var(--surface);display:none}
+.action-row{display:flex;gap:8px;margin-bottom:12px}
+.act-btn{flex:1;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:9px 4px;background:transparent;border:1px solid var(--border2);color:var(--muted);cursor:pointer;transition:all 0.15s}
+.act-btn:hover,.act-btn.active{background:var(--surface2);color:var(--text);border-color:var(--text)}
+.act-btn:disabled{opacity:0.3;cursor:not-allowed}
+.act-btn.a-ask:hover,.act-btn.a-ask.active{border-color:#5b9bd5;color:#5b9bd5;background:transparent}
+.act-btn.a-offer:hover,.act-btn.a-offer.active{border-color:var(--green);color:var(--green);background:transparent}
+.act-btn.a-accept:hover,.act-btn.a-accept.active{border-color:#8bc34a;color:#8bc34a;background:transparent}
+.act-btn.a-walkaway:hover,.act-btn.a-walkaway.active{border-color:var(--red);color:var(--red);background:transparent}
+.input-zone{display:none;flex-direction:column;gap:8px;margin-bottom:12px}
+.input-zone.show{display:flex}
+.neg-input{width:100%;font-family:'Libre Baskerville',serif;font-size:13px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);outline:none}
+.neg-input:focus{border-color:var(--text)}
+.offer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.offer-group label{display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.offer-group input{width:100%;font-family:'DM Mono',monospace;font-size:18px;font-weight:500;padding:8px 12px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);outline:none}
+.offer-group input:focus{border-color:var(--green)}
+.submit-row{display:flex;gap:8px}
+.btn-submit{flex:1;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;padding:11px;background:var(--text);color:var(--bg);border:none;cursor:pointer;transition:opacity 0.15s;display:none}
+.btn-submit:hover{opacity:0.85}
+.btn-cancel{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:11px 16px;background:transparent;border:1px solid var(--border2);color:var(--muted);cursor:pointer;display:none}
+.btn-cancel:hover{color:var(--text);border-color:var(--text)}
+.ts-body{flex:1;overflow-y:auto;background:var(--paper);color:var(--ink);padding:28px 24px;position:relative}
+.ts-body::-webkit-scrollbar{width:3px}
+.ts-body::-webkit-scrollbar-thumb{background:var(--rule)}
+.ts-header{text-align:center;padding-bottom:20px;margin-bottom:20px;border-bottom:2px solid var(--ink)}
+.ts-title{font-family:'DM Serif Display',serif;font-size:22px;letter-spacing:1px;color:var(--ink)}
+.ts-sub{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--ink3);margin-top:4px}
+.ts-ref{font-family:'DM Mono',monospace;font-size:9px;color:var(--ink3);margin-top:8px}
+.ts-section{margin-bottom:20px}
+.ts-section-title{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--ink3);padding-bottom:6px;border-bottom:1px solid var(--rule);margin-bottom:12px}
+.ts-row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px dotted var(--rule)}
+.ts-row:last-child{border-bottom:none}
+.ts-key{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3)}
+.ts-val{font-family:'DM Serif Display',serif;font-size:20px;color:var(--ink)}
+.ts-val.pending{font-family:'Libre Baskerville',serif;font-style:italic;font-size:12px;color:var(--ink3)}
+.rounds-track{display:flex;gap:4px;margin-bottom:16px}
+.r-seg{flex:1;height:3px;background:var(--rule);transition:background 0.3s}
+.r-seg.done{background:var(--ink2)}
+.r-seg.now{background:var(--ink)}
+.score-block{text-align:center;padding:16px 0;border-top:1px solid var(--rule);margin-top:4px}
+.score-big{font-family:'DM Serif Display',serif;font-size:48px;color:var(--ink);line-height:1}
+.score-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--ink3);margin-top:4px}
+.bk-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dotted var(--rule)}
+.bk-row:last-child{border-bottom:none}
+.bk-key{font-family:'DM Mono',monospace;font-size:10px;color:var(--ink3)}
+.bk-val{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;color:var(--ink)}
+.verdict{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);font-family:'DM Serif Display',serif;font-size:42px;letter-spacing:4px;text-transform:uppercase;border:5px solid;padding:14px 28px;pointer-events:none;opacity:0;transition:opacity 0.4s;z-index:10}
+.verdict.deal{color:var(--green);border-color:var(--green)}
+.verdict.nodeal{color:var(--red);border-color:var(--red)}
+.verdict.show{opacity:0.9}
+.start-overlay{position:absolute;inset:0;background:rgba(13,13,13,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:20}
+.start-logo{font-family:'DM Serif Display',serif;font-size:36px;color:var(--text);text-align:center;line-height:1.2}
+.start-logo em{font-style:italic;color:var(--muted)}
+.start-desc{font-size:11px;letter-spacing:0.5px;color:var(--muted);text-align:center;max-width:320px;line-height:1.8}
+.start-url{font-size:10px;padding:10px 16px;background:transparent;border:1px solid var(--border2);color:var(--muted);font-family:'DM Mono',monospace;width:340px;text-align:center;outline:none}
+.start-url:focus{border-color:var(--text);color:var(--text)}
+.start-diff{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:10px 20px;background:transparent;border:1px solid var(--border2);color:var(--muted);cursor:pointer;outline:none}
+.start-btn{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:4px;text-transform:uppercase;padding:14px 40px;background:var(--text);color:var(--bg);border:none;cursor:pointer;transition:opacity 0.15s}
+.start-btn:hover{opacity:0.85}
+.start-loading{font-size:10px;letter-spacing:2px;color:var(--muted);animation:pulse 1s infinite;display:none}
+.start-err{font-size:10px;color:var(--red);letter-spacing:1px;display:none}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">VC <em>Negotiation Terminal</em></div>
+  <div class="topbar-meta">
+    <div class="meta-item"><span class="status-dot"></span>ENV LIVE</div>
+    <div class="meta-item">MODEL <strong>QWEN2.5-1.5B</strong></div>
+    <div class="meta-item">ALGO <strong>GRPO</strong></div>
+    <div class="meta-item">ROUND <strong id="roundMeta">—</strong></div>
+  </div>
+</div>
+
+<div class="layout">
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Counterparty</div>
+      <div class="panel-badge" id="diffBadge">—</div>
+    </div>
+    <div class="cp-body">
+      <div class="cp-name" id="cpName">—<br><em>Founder</em></div>
+      <div class="cp-co" id="cpCo">AWAITING SESSION</div>
+      <div class="kv-row"><div class="kv-key">Asking</div><div class="kv-val" id="cpAsk">—</div></div>
+      <div class="kv-row"><div class="kv-key">Min. Valuation</div><div class="kv-val secret" id="cpMin">classified</div></div>
+      <div class="kv-row"><div class="kv-key">Max Equity</div><div class="kv-val secret" id="cpEq">classified</div></div>
+      <div class="kv-row"><div class="kv-key">Competing Offer</div><div class="kv-val secret" id="cpComp">classified</div></div>
+      <div class="alert-box" id="compAlert"><strong>Competing Offer Present</strong>Another term sheet is on the table. Move carefully.</div>
+      <div class="intel-section">
+        <div class="intel-label">Gathered Intelligence</div>
+        <div class="intel-empty" id="intelEmpty">Nothing revealed yet.</div>
+        <div id="intelList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="mid-wrap">
+      <div class="start-overlay" id="startOverlay">
+        <div class="start-logo">VC<br><em>Term Sheet</em></div>
+        <div class="start-desc">A reinforcement-learning environment where an AI agent learns to negotiate startup deals like a seasoned investor.</div>
+        <input class="start-url" id="envUrl" value="https://Priyansh10oooo-vc-negotiation-env.hf.space">
+        <select class="start-diff" id="startDiff">
+          <option value="easy">Easy — 10 rounds, lenient founder</option>
+          <option value="medium" selected>Medium — 6 rounds, standard</option>
+          <option value="hard">Hard — 4 rounds, competing offers</option>
+        </select>
+        <button class="start-btn" id="startBtn" onclick="startGame()">Begin Negotiation</button>
+        <div class="start-loading" id="startLoading">Connecting...</div>
+        <div class="start-err" id="startErr">Connection failed. Check URL.</div>
+      </div>
+      <div class="panel-header">
+        <div class="panel-title">Negotiation Room</div>
+        <div class="panel-badge" id="sessionBadge">NO SESSION</div>
+      </div>
+      <div class="neg-body">
+        <div class="transcript" id="transcript">
+          <div class="msg"><div class="msg-meta"><div class="msg-who sys">System</div></div><div class="msg-text sys-text">Awaiting session start. Configure environment and begin negotiation.</div></div>
+        </div>
+      </div>
+      <div class="action-bar" id="actionBar">
+        <div class="action-row">
+          <button class="act-btn a-ask" onclick="selectAct('ask')">Ask</button>
+          <button class="act-btn a-offer" onclick="selectAct('offer')">Offer</button>
+          <button class="act-btn a-accept" onclick="selectAct('accept')">Accept</button>
+          <button class="act-btn a-walkaway" onclick="selectAct('walkaway')">Walk Away</button>
+        </div>
+        <div class="input-zone" id="inputZone">
+          <input class="neg-input" id="askInput" placeholder="What do you want to know about the company...">
+          <div class="offer-grid" id="offerGrid" style="display:none">
+            <div class="offer-group"><label>Valuation ($M)</label><input type="number" id="valIn" placeholder="10" step="0.5" min="0.5" max="100"></div>
+            <div class="offer-group"><label>Equity (%)</label><input type="number" id="eqIn" placeholder="15" step="0.5" min="0.5" max="49"></div>
+          </div>
+        </div>
+        <div class="submit-row">
+          <button class="btn-submit" id="submitBtn" onclick="doSubmit()">Submit</button>
+          <button class="btn-cancel" id="cancelBtn" onclick="cancelAct()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header" style="background:var(--paper);border-color:var(--rule)">
+      <div class="panel-title" style="color:var(--ink3)">Live Term Sheet</div>
+      <button onclick="resetGame()" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:4px 10px;background:transparent;border:1px solid var(--rule);color:var(--ink3);cursor:pointer">New</button>
+    </div>
+    <div class="ts-body">
+      <div class="verdict deal" id="dealVerdict">Closed</div>
+      <div class="verdict nodeal" id="nodealVerdict">No Deal</div>
+      <div class="ts-header">
+        <div class="ts-title">Term Sheet</div>
+        <div class="ts-sub">Confidential · Non-Binding</div>
+        <div class="ts-ref" id="tsRef">Ref: —</div>
+      </div>
+      <div class="ts-section">
+        <div class="ts-section-title">Progress</div>
+        <div class="rounds-track" id="roundsTrack"></div>
+      </div>
+      <div class="ts-section">
+        <div class="ts-section-title">Current Proposal</div>
+        <div class="ts-row"><div class="ts-key">Valuation</div><div class="ts-val pending" id="tsVal">Pending</div></div>
+        <div class="ts-row"><div class="ts-key">Equity Stake</div><div class="ts-val pending" id="tsEq">Pending</div></div>
+        <div class="ts-row"><div class="ts-key">Offers Made</div><div class="ts-val" id="tsOffers" style="font-size:20px">0</div></div>
+        <div class="ts-row"><div class="ts-key">Status</div><div class="ts-val pending" id="tsStatus">In Progress</div></div>
+      </div>
+      <div class="ts-section">
+        <div class="ts-section-title">Reward Breakdown</div>
+        <div id="bkList">
+          <div class="bk-row"><div class="bk-key">Deal Closed</div><div class="bk-val">—</div></div>
+          <div class="bk-row"><div class="bk-key">Val. Efficiency</div><div class="bk-val">—</div></div>
+          <div class="bk-row"><div class="bk-key">Equity Efficiency</div><div class="bk-val">—</div></div>
+          <div class="bk-row"><div class="bk-key">Speed Bonus</div><div class="bk-val">—</div></div>
+          <div class="bk-row"><div class="bk-key">Info Gathering</div><div class="bk-val">—</div></div>
+        </div>
+      </div>
+      <div class="score-block">
+        <div class="score-big" id="scoreBig">0.000</div>
+        <div class="score-label">Total Deal Score</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const FOUNDERS=[
+  {name:"Arjun Mehta",co:"NexaTech Inc."},
+  {name:"Priya Sharma",co:"VeloCloud Ltd."},
+  {name:"Rahul Kapoor",co:"DataStride Co."},
+  {name:"Sneha Iyer",co:"QuantumLeap Pvt."},
+  {name:"Vikram Nair",co:"FusionWare Inc."},
+];
+let BASE="https://Priyansh10oooo-vc-negotiation-env.hf.space";
+let sessionId=null,curAct=null,totalScore=0,offerCount=0,curRound=0,maxRounds=6;
+
+function addMsg(who,text,reward){
+  const t=document.getElementById('transcript');
+  const labels={founder:'Founder',agent:'You',sys:'System'};
+  const d=document.createElement('div');d.className='msg';
+  let rHtml=reward!=null?`<div class="msg-reward">reward <span>+${reward.toFixed(4)}</span></div>`:'';
+  d.innerHTML=`<div class="msg-meta"><div class="msg-who ${who}">${labels[who]}</div>${curRound>0?`<div class="msg-round">Round ${curRound}</div>`:''}</div><div class="msg-text${who==='sys'?' sys-text':''}">${text}</div>${rHtml}`;
+  t.appendChild(d);t.scrollTop=t.scrollHeight;
+}
+
+function updateRounds(cur){
+  const segs=document.getElementById('roundsTrack').children;
+  for(let i=0;i<segs.length;i++){
+    segs[i].className='r-seg';
+    if(i<cur-1)segs[i].classList.add('done');
+    else if(i===cur-1)segs[i].classList.add('now');
+  }
+  document.getElementById('roundMeta').textContent=`${cur}/${maxRounds}`;
+}
+
+function updateScore(s){document.getElementById('scoreBig').textContent=s.toFixed(3)}
+
+function updateBreakdown(r){
+  const keys=['deal_closed','valuation_efficiency','equity_efficiency','speed_bonus','info_gathering'];
+  const rows=document.getElementById('bkList').children;
+  keys.forEach((k,i)=>rows[i].querySelector('.bk-val').textContent=(r[k]||0).toFixed(3));
+}
+
+function selectAct(type){
+  curAct=type;
+  document.querySelectorAll('.act-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.a-${type}`).classList.add('active');
+  const iz=document.getElementById('inputZone');
+  const ai=document.getElementById('askInput');
+  const og=document.getElementById('offerGrid');
+  const sb=document.getElementById('submitBtn');
+  const cb=document.getElementById('cancelBtn');
+  iz.className='input-zone';ai.style.display='none';og.style.display='none';sb.style.display='none';cb.style.display='none';
+  if(type==='ask'){iz.classList.add('show');ai.style.display='block';sb.style.display='block';cb.style.display='block';ai.focus()}
+  else if(type==='offer'){iz.classList.add('show');og.style.display='grid';sb.style.display='block';cb.style.display='block'}
+  else doSubmit();
+}
+
+function cancelAct(){
+  curAct=null;
+  document.querySelectorAll('.act-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('inputZone').className='input-zone';
+  document.getElementById('submitBtn').style.display='none';
+  document.getElementById('cancelBtn').style.display='none';
+}
+
+async function doSubmit(){
+  if(!sessionId)return;
+  let action={action_type:curAct};
+  if(curAct==='ask'){action.message=document.getElementById('askInput').value.trim()||"What is your valuation expectation?";document.getElementById('askInput').value=''}
+  else if(curAct==='offer'){action.valuation=parseFloat(document.getElementById('valIn').value)||10;action.equity=parseFloat(document.getElementById('eqIn').value)||15}
+  cancelAct();
+  const actText=curAct==='ask'?`"${action.message}"`:curAct==='offer'?`Proposed $${action.valuation}M at ${action.equity}% equity`:curAct==='accept'?'Accepted current terms.':'Walked away from the deal.';
+  addMsg('agent',actText);
+  document.querySelectorAll('.act-btn').forEach(b=>b.disabled=true);
+  try{
+    const res=await fetch(`${BASE}/step?session_id=${sessionId}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action)});
+    const data=await res.json();const obs=data.observation;
+    curRound=obs.round_number;updateRounds(curRound);
+    totalScore+=data.reward;updateScore(totalScore);
+    addMsg('founder',obs.founder_message,data.reward);
+    if(obs.rewards&&Object.keys(obs.rewards).length>0)updateBreakdown(obs.rewards);
+    if(action.action_type==='ask'&&obs.founder_message.includes('$')){
+      document.getElementById('intelEmpty').style.display='none';
+      const li=document.createElement('div');li.className='intel-item show';li.textContent=obs.founder_message;
+      document.getElementById('intelList').appendChild(li);
+    }
+    if(action.action_type==='offer'){
+      offerCount++;
+      document.getElementById('tsVal').className='ts-val';document.getElementById('tsVal').textContent=`$${action.valuation}M`;
+      document.getElementById('tsEq').className='ts-val';document.getElementById('tsEq').textContent=`${action.equity}%`;
+      document.getElementById('tsOffers').textContent=offerCount;
+    }
+    if(data.done)endGame(obs.deal_closed,obs.founder_walked);
+    else document.querySelectorAll('.act-btn').forEach(b=>b.disabled=false);
+  }catch(e){addMsg('sys','Network error. Check environment URL.');document.querySelectorAll('.act-btn').forEach(b=>b.disabled=false)}
+}
+
+function endGame(closed,walked){
+  document.getElementById('actionBar').style.display='none';
+  const status=closed?'Deal Closed':walked?'Founder Walked':'No Agreement';
+  document.getElementById('tsStatus').textContent=status;
+  if(closed){document.getElementById('dealVerdict').classList.add('show');addMsg('sys','Term sheet executed. Negotiation complete.')}
+  else{document.getElementById('nodealVerdict').classList.add('show');addMsg('sys','Negotiations concluded without agreement.')}
+}
+
+async function startGame(){
+  BASE=document.getElementById('envUrl').value.trim().replace(/\/$/,'');
+  const diff=document.getElementById('startDiff').value;
+  document.getElementById('startBtn').style.display='none';
+  document.getElementById('startLoading').style.display='block';
+  document.getElementById('startErr').style.display='none';
+  try{
+    const res=await fetch(`${BASE}/reset?difficulty=${diff}`,{method:'POST'});
+    const data=await res.json();sessionId=data.session_id;
+    const f=FOUNDERS[Math.floor(Math.random()*FOUNDERS.length)];
+    document.getElementById('cpName').innerHTML=`${f.name}<br><em>Founder</em>`;
+    document.getElementById('cpCo').textContent=f.co.toUpperCase();
+    document.getElementById('cpAsk').textContent=diff==='easy'?'$3–8M':diff==='hard'?'$15–25M':'$8–20M';
+    document.getElementById('diffBadge').textContent=diff.toUpperCase();
+    document.getElementById('sessionBadge').textContent=sessionId.split('-')[0].toUpperCase();
+    document.getElementById('tsRef').textContent=`Ref: TS-${Math.random().toString(36).substr(2,8).toUpperCase()}`;
+    maxRounds=diff==='easy'?10:diff==='hard'?4:6;
+    document.getElementById('roundMeta').textContent=`0/${maxRounds}`;
+    document.getElementById('roundsTrack').innerHTML=Array(maxRounds).fill('<div class="r-seg"></div>').join('');
+    if(data.founder_message.toLowerCase().includes('offer')){
+      document.getElementById('compAlert').style.display='block';
+      document.getElementById('cpComp').textContent='Present';document.getElementById('cpComp').className='kv-val revealed';
+    }
+    document.getElementById('transcript').innerHTML='';
+    addMsg('founder',data.founder_message);
+    document.getElementById('startOverlay').style.display='none';
+    document.getElementById('actionBar').style.display='block';
+    totalScore=0;offerCount=0;curRound=0;updateScore(0);
+  }catch(e){
+    document.getElementById('startErr').style.display='block';
+    document.getElementById('startBtn').style.display='block';
+    document.getElementById('startLoading').style.display='none';
+  }
+}
+
+function resetGame(){
+  sessionId=null;totalScore=0;offerCount=0;curRound=0;
+  document.getElementById('startOverlay').style.display='flex';
+  document.getElementById('startBtn').style.display='block';
+  document.getElementById('startLoading').style.display='none';
+  document.getElementById('startErr').style.display='none';
+  document.getElementById('actionBar').style.display='none';
+  document.getElementById('transcript').innerHTML='<div class="msg"><div class="msg-meta"><div class="msg-who sys">System</div></div><div class="msg-text sys-text">Awaiting session start.</div></div>';
+  ['cpName','cpCo','cpAsk','tsRef','sessionBadge','diffBadge','roundMeta'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(id==='cpName')el.innerHTML='—<br><em>Founder</em>';
+    else if(id==='cpCo')el.textContent='AWAITING SESSION';
+    else if(id==='cpAsk'||id==='tsRef')el.textContent='—';
+    else if(id==='sessionBadge')el.textContent='NO SESSION';
+    else if(id==='diffBadge'||id==='roundMeta')el.textContent='—';
+  });
+  ['cpMin','cpEq','cpComp'].forEach(id=>{document.getElementById(id).textContent='classified';document.getElementById(id).className='kv-val secret'});
+  document.getElementById('compAlert').style.display='none';
+  document.getElementById('intelEmpty').style.display='block';
+  document.getElementById('intelList').innerHTML='';
+  document.getElementById('tsVal').className='ts-val pending';document.getElementById('tsVal').textContent='Pending';
+  document.getElementById('tsEq').className='ts-val pending';document.getElementById('tsEq').textContent='Pending';
+  document.getElementById('tsOffers').textContent='0';
+  document.getElementById('tsStatus').className='ts-val pending';document.getElementById('tsStatus').textContent='In Progress';
+  document.getElementById('dealVerdict').classList.remove('show');
+  document.getElementById('nodealVerdict').classList.remove('show');
+  document.getElementById('scoreBig').textContent='0.000';
+  document.getElementById('roundsTrack').innerHTML='';
+  document.getElementById('bkList').innerHTML=['Deal Closed','Val. Efficiency','Equity Efficiency','Speed Bonus','Info Gathering'].map(k=>`<div class="bk-row"><div class="bk-key">${k}</div><div class="bk-val">—</div></div>`).join('');
+}
+</script>
+</body>
+</html>
